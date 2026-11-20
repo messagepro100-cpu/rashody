@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мои расходы</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">Личный учёт</p><h1>Мои расходы</h1><p>Записывайте траты — всё останется в этом браузере.</p></header>
+    <section class="monthly" aria-labelledby="month-title">
+      <div><h2 id="month-title">За текущий месяц</h2><p id="month-name"></p></div>
+      <strong id="month-total">0 ₸</strong>
+    </section>
+    <p id="storage-message" class="error" role="alert"></p>
+    <section class="card" aria-labelledby="add-title">
+      <h2 id="add-title">Добавить трату</h2>
+      <form id="expense-form" novalidate>
+        <div class="form-grid">
+          <div><label for="amount">Сумма, ₸</label><input id="amount" name="amount" type="text" inputmode="numeric" placeholder="Например, 5 000" required aria-describedby="amount-error"><p id="amount-error" class="error"></p></div>
+          <div><label for="category">Категория</label><select id="category" name="category"><option>Еда</option><option>Транспорт</option><option>Дом</option><option>Секции</option><option>Другое</option><option>Траты</option></select></div>
+          <div><label for="date">Дата</label><input id="date" name="date" type="date" required aria-describedby="date-error"><p id="date-error" class="error"></p></div>
+          <div><label for="comment">Комментарий <span>(необязательно)</span></label><input id="comment" name="comment" type="text" placeholder="На что потратили"></div>
+        </div>
+        <button class="primary" type="submit">Добавить</button>
+        <p id="save-status" class="status" role="status"></p>
+      </form>
+    </section>
+    <section class="card" aria-labelledby="list-title">
+      <div class="list-heading"><h2 id="list-title">Все траты</h2><span>Новые сверху</span></div>
+      <p id="empty-list" class="hint">Трат пока нет. Добавьте первую выше.</p>
+      <ul id="expense-list"></ul>
+    </section>
+    <section class="card" aria-labelledby="period-title">
+      <h2 id="period-title">Сумма за период</h2>
+      <div class="form-grid period-dates">
+        <div><label for="period-start">С</label><input id="period-start" type="date"></div>
+        <div><label for="period-end">По</label><input id="period-end" type="date"></div>
+      </div>
+      <div class="presets" role="group" aria-label="Быстрый выбор периода"><button type="button" data-days="1">Сутки</button><button type="button" data-days="7">7 дней</button><button type="button" data-days="14">14 дней</button><button type="button" data-days="month">Месяц</button></div>
+      <p class="hint">Даты включены. «Сутки» — сегодня, «Месяц» — текущий календарный месяц.</p>
+      <p id="period-error" class="error" role="alert"></p>
+      <strong id="period-total" class="period-total">0 ₸</strong>
+    </section>
+  </main>
+</body>
+</html>
