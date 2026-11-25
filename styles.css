@@ -40,10 +40,18 @@ ul { list-style: none; padding: 0; margin: 0; }
 .expense strong { overflow-wrap: anywhere; }
 .expense time { grid-column: 1 / -1; color: #5f6d66; font-size: 13px; }
 .expense p { grid-column: 1 / -1; margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.budget-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.budget-category { min-width: 0; padding: 16px; border: 1px solid #dce3da; border-radius: 12px; }
+.budget-category h3 { margin: 0; font-size: 17px; }
+.budget-limit { margin: 8px 0 16px; overflow-wrap: anywhere; }
+.budget-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.budget-actions button { flex: 1 1 auto; }
+button:disabled { cursor: default; opacity: .55; }
 @media (max-width: 540px) {
   main { padding: 26px 16px; }
   .card, .monthly { padding: 20px; border-radius: 16px; }
   .form-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .primary { width: 100%; }
   .expense { grid-template-columns: minmax(0, 1fr); }
+  .budget-grid { grid-template-columns: minmax(0, 1fr); }
 }

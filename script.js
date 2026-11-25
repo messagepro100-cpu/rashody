@@ -1,6 +1,7 @@
 "use strict";
 
 const STORAGE_KEY = "rashody.expenses.v1";
+const BUDGET_KEY_PREFIX = "rashody.budgets.v1.";
 const categories = ["Еда", "Транспорт", "Дом", "Секции", "Другое", "Траты"];
 const byId = (id) => document.getElementById(id);
 const form = byId("expense-form");
@@ -49,7 +50,119 @@ function fieldError(input, message) {
   byId(`${input.id}-error`).textContent = message;
 }
 
+let budgetMonth = "";
+let budgetLimits = {};
+let budgetStorageReady = true;
+
+function validLimits(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  let sum = 0;
+  return Object.entries(value).every(([category, limit]) => {
+    if (!categories.includes(category) || !Number.isSafeInteger(limit) || limit < 0) return false;
+    sum += limit;
+    return Number.isSafeInteger(sum);
+  });
+}
+
+function syncBudgetMonth() {
+  const now = new Date();
+  const month = localDate(now).slice(0, 7);
+  if (month === budgetMonth) return false;
+  budgetMonth = month;
+  budgetLimits = {};
+  budgetStorageReady = true;
+  byId("budget-storage-message").textContent = "";
+  byId("budget-status").textContent = "";
+  try {
+    const raw = localStorage.getItem(BUDGET_KEY_PREFIX + month);
+    if (raw !== null) {
+      const saved = JSON.parse(raw);
+      if (!validLimits(saved)) throw new Error("Invalid stored limits");
+      budgetLimits = saved;
+    }
+  } catch {
+    budgetStorageReady = false;
+    byId("budget-storage-message").textContent = "Не удалось прочитать лимиты. Изменение приостановлено, чтобы не потерять данные. Проверьте доступ к хранилищу браузера и обновите страницу.";
+  }
+  byId("budget-month").textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  const container = byId("budget-categories");
+  container.replaceChildren();
+  categories.forEach((category, index) => {
+    const categoryForm = document.createElement("form");
+    categoryForm.className = "budget-category";
+    categoryForm.noValidate = true;
+    categoryForm.setAttribute("aria-labelledby", `budget-category-${index}`);
+    // Категории и идентификаторы берутся только из фиксированного списка выше.
+    categoryForm.innerHTML = `
+      <h3 id="budget-category-${index}">${category}</h3>
+      <p id="budget-limit-${index}" class="budget-limit"></p>
+      <label for="budget-input-${index}">Лимит, ₸</label>
+      <input id="budget-input-${index}" type="text" inputmode="numeric" placeholder="Например, 15 000" aria-describedby="budget-limit-${index} budget-input-${index}-error" required>
+      <p id="budget-input-${index}-error" class="error" role="alert"></p>
+      <div class="budget-actions"><button type="submit">Сохранить</button><button type="button">Убрать лимит</button></div>`;
+    const input = categoryForm.querySelector("input");
+    const saveButton = categoryForm.querySelector('[type="submit"]');
+    const removeButton = categoryForm.querySelector('[type="button"]');
+    function updateLimit() {
+      const hasLimit = Object.hasOwn(budgetLimits, category);
+      byId(`budget-limit-${index}`).textContent = !budgetStorageReady ? "Лимит: недоступен" :
+        hasLimit ? `Лимит: ${money(budgetLimits[category])}` : "Лимит: Не задан";
+      input.value = hasLimit ? String(budgetLimits[category]).replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
+      input.disabled = saveButton.disabled = !budgetStorageReady;
+      removeButton.disabled = !budgetStorageReady || !hasLimit;
+    }
+    function saveLimit(remove) {
+      // Старое поле при смене месяца не должно записать значение в новый месяц.
+      if (syncBudgetMonth()) {
+        byId("budget-status").textContent = "Месяц изменился. Задайте лимит для нового месяца.";
+        return;
+      }
+      byId("budget-status").textContent = "";
+      if (!budgetStorageReady) return;
+      const next = { ...budgetLimits };
+      let error = "";
+      if (remove) {
+        delete next[category];
+      } else {
+        const value = input.value.trim();
+        const amount = Number(value.replace(/[ \u00a0\u202f]/g, ""));
+        if (!/^\d+(?:[ \u00a0\u202f]\d+)*$/.test(value) || !Number.isSafeInteger(amount) || amount < 0) {
+          error = "Введите целый лимит от 0 ₸, например 15 000.";
+        } else {
+          next[category] = amount;
+          if (!validLimits(next)) error = "Сумма лимитов слишком велика. Укажите меньший лимит.";
+        }
+      }
+      fieldError(input, error);
+      if (error) {
+        input.focus();
+        return;
+      }
+      try {
+        localStorage.setItem(BUDGET_KEY_PREFIX + budgetMonth, JSON.stringify(next));
+      } catch {
+        byId("budget-storage-message").textContent = "Не удалось сохранить лимиты. Прежние лимиты остаются в силе. Проверьте свободное место и доступ к хранилищу браузера, затем попробуйте ещё раз.";
+        return;
+      }
+      budgetLimits = next;
+      byId("budget-storage-message").textContent = "";
+      updateLimit();
+      byId("budget-status").textContent = `${category}: ${remove ? "лимит убран" : "лимит сохранён"}.`;
+      if (remove) input.focus();
+    }
+    categoryForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      saveLimit(false);
+    });
+    removeButton.addEventListener("click", () => saveLimit(true));
+    container.append(categoryForm);
+    updateLimit();
+  });
+  return true;
+}
+
 function renderTotals() {
+  syncBudgetMonth();
   const now = new Date();
   const month = localDate(now).slice(0, 7);
   byId("month-name").textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
